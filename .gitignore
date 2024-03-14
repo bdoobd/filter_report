@@ -1,0 +1,4 @@
+.ipynb_*
+*.ipynb
+*.csv
+*.xlsx
