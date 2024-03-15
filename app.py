@@ -47,7 +47,7 @@ if __name__ == '__main__':
     }
 
     data = pd.read_csv(
-        'test.csv',
+        csv_file,
         dtype=types_of_columns,
         usecols=list(types_of_columns) + ['Currency amount', 'Acquired',
                                           'Sold', 'Proceeds (EUR)', 'Cost basis (EUR)', 'Gains (EUR)'],
