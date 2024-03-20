@@ -61,12 +61,16 @@ if __name__ == '__main__':
     add_table = grouped['Gains (EUR)'].agg(
         [('Lost', lambda x: x[x < 0].sum()), ('Gain', lambda x: x[x > 0].sum())])
 
-    print(main_table.join(add_table))
+    ready = main_table.join(add_table)
+
+    print(ready)
+
+    ready.loc['YHTEENSÄ', :] = ready.sum().values
 
     try:
         hlp.create_folder(ready_folder)
         # TODO: Записать таблицу в файл excel
-        main_table.join(add_table).to_excel(ready_folder / ready_file_name)
+        ready.to_excel(ready_folder / ready_file_name)
     except Exception as e:
         print(f'Не удалось создать папку для готового файла.\n')
         print(e)
