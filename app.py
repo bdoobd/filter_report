@@ -8,7 +8,6 @@ source_folder = Path('./source')
 ready_folder = Path('./ready')
 ready_file_name = hlp.get_file_name()
 
-
 if __name__ == '__main__':
     try:
         hlp.create_folder(source_folder)
@@ -17,10 +16,14 @@ if __name__ == '__main__':
         print('Скрипт закончил работу.')
         sys.exit()
 
-    if hlp.check_dir_empty(source_folder):
-        print(
-            f'Помести исходный .csv файл в папку {source_folder} и снова запусти скрипт')
-        sys.exit()
+    while hlp.check_dir_empty(source_folder):
+        try:
+            print('Не найден исходный файл для работы')
+            again = input(
+                f'Помести исходный .csv файл в папку {source_folder} и нажми ENTER\n')
+        except KeyboardInterrupt:
+            print('Отмена работы скрипта')
+            sys.exit()
 
     while True:
         try:
@@ -54,24 +57,28 @@ if __name__ == '__main__':
         parse_dates=['Acquired', 'Sold']
     )
 
-    grouped = data.groupby(['Currency name', 'Transaction type'])
+    negatives = data.loc[data['Gains (EUR)'] <= 0]
+    positives = data.loc[data['Gains (EUR)'] > 0]
 
-    main_table = grouped[['Proceeds (EUR)', 'Cost basis (EUR)', 'Gains (EUR)']].agg(
-        'sum')
-    add_table = grouped['Gains (EUR)'].agg(
-        [('Lost', lambda x: x[x < 0].sum()), ('Gain', lambda x: x[x > 0].sum())])
+    negative_grouped = negatives.groupby(['Currency name', 'Transaction type'])
+    positive_grouped = positives.groupby(['Currency name', 'Transaction type'])
 
-    ready = main_table.join(add_table)
+    negative_sums = negative_grouped[[
+        'Proceeds (EUR)', 'Cost basis (EUR)', 'Gains (EUR)']].agg('sum')
+    positive_sums = positive_grouped[[
+        'Proceeds (EUR)', 'Cost basis (EUR)', 'Gains (EUR)']].agg('sum')
 
-    print(ready)
-
-    ready.loc['YHTEENSÄ', :] = ready.sum().values
+    negative_sums.loc['TOTAL', :] = negative_sums.sum().values
+    positive_sums.loc['TOTAL', :] = positive_sums.sum().values
 
     try:
         hlp.create_folder(ready_folder)
-        # TODO: Записать таблицу в файл excel
-        ready.to_excel(ready_folder / ready_file_name)
+        with pd.ExcelWriter(ready_folder / ready_file_name) as writer:
+            positive_sums.to_excel(writer, sheet_name='Wins')
+            negative_sums.to_excel(writer, sheet_name='Losts')
     except Exception as e:
         print(f'Не удалось создать папку для готового файла.\n')
         print(e)
         sys.exit()
+    else:
+        print(f'Файл {ready_folder / ready_file_name} успешно создан')
